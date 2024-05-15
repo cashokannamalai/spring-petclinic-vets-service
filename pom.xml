@@ -23,8 +23,8 @@
         <lombok.version>1.18.30</lombok.version>
 
         <docker.image.prefix>springcommunity</docker.image.prefix>
-        <docker.image.exposed.port>9090</docker.image.exposed.port>
-        <docker.image.dockerfile.dir>${basedir}</docker.image.dockerfile.dir>
+        <docker.image.exposed.port>8081</docker.image.exposed.port>
+        <docker.image.dockerfile.dir>${basedir}/../docker</docker.image.dockerfile.dir>
         <!-- podman is also supported -->
         <container.executable>docker</container.executable>
         <!-- By default, the OCI image is build for the linux/amd64 platform -->
