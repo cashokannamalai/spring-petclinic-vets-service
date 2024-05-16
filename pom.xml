@@ -94,14 +94,17 @@
         <dependency>
             <groupId>javax.cache</groupId>
             <artifactId>cache-api</artifactId>
+	    <version>2.6.9</version>
         </dependency>
         <dependency>
             <groupId>jakarta.xml.bind</groupId>
             <artifactId>jakarta.xml.bind-api</artifactId>
+	    <version>2.6.9</version>
         </dependency>
         <dependency>
             <groupId>com.github.ben-manes.caffeine</groupId>
             <artifactId>caffeine</artifactId>
+	    <version>2.6.9</version>
         </dependency>
         <dependency>
             <groupId>org.jolokia</groupId>
@@ -111,16 +114,19 @@
 		<dependency>
 			<groupId>org.hsqldb</groupId>
 			<artifactId>hsqldb</artifactId>
+			<version>2.6.9</version>
 			<scope>runtime</scope>
 		</dependency>
 		<dependency>
             <groupId>com.mysql</groupId>
             <artifactId>mysql-connector-j</artifactId>
+			<version>2.6.9</version>
 			<scope>runtime</scope>
 		</dependency>
         <dependency>
             <groupId>io.micrometer</groupId>
             <artifactId>micrometer-registry-prometheus</artifactId>
+	    <version>2.6.9</version>
         </dependency>
         <dependency>
             <groupId>de.codecentric</groupId>
@@ -130,18 +136,22 @@
         <dependency>
             <groupId>io.opentelemetry</groupId>
             <artifactId>opentelemetry-exporter-zipkin</artifactId>
+	    <version>2.6.9</version>
         </dependency>
         <dependency>
             <groupId>io.micrometer</groupId>
             <artifactId>micrometer-observation</artifactId>
+	    <version>2.6.9</version>
         </dependency>
         <dependency>
             <groupId>io.micrometer</groupId>
             <artifactId>micrometer-tracing-bridge-brave</artifactId>
+	    <version>2.6.9</version>
         </dependency>
         <dependency>
             <groupId>io.zipkin.reporter2</groupId>
             <artifactId>zipkin-reporter-brave</artifactId>
+	    <version>2.6.9</version>
         </dependency>
         <dependency>
             <groupId>net.ttddyy.observation</groupId>
@@ -153,11 +163,13 @@
         <dependency>
             <groupId>org.junit.jupiter</groupId>
             <artifactId>junit-jupiter-api</artifactId>
+	     <version>2.6.9</version>
             <scope>test</scope>
         </dependency>
         <dependency>
             <groupId>org.junit.jupiter</groupId>
             <artifactId>junit-jupiter-engine</artifactId>
+	    <version>2.6.9</version>
             <scope>test</scope>
         </dependency>
 	</dependencies>
