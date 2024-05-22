@@ -34,7 +34,7 @@ jobs:
         with:
           server-url: https://sonarqube.cb-demos.io
           username: admin
-          password: ${{ secrets.SONAR_PASSWD }}
+          password: admin123
           language: Java
 
       - uses: cloudbees-io/sonarqube-bundled-sast-scan-code@v2
