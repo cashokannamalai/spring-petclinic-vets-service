@@ -21,4 +21,37 @@ jobs:
         uses: docker://maven:3-eclipse-temurin-17
         run: |
           mvn clean install 
+
+
+  scan:
+    needs: ci-job
+    steps:
+      
+
+      - uses: cloudbees-io/sonarqube-sast-scan-code@v1
+        name: Scan
+        kind: scan
+        with:
+          server-url: https://sonarqube.cb-demos.io
+          username: admin
+          password: ${{ secrets.SONAR_PASSWD }}
+          language: Java
+
+      - uses: cloudbees-io/sonarqube-bundled-sast-scan-code@v2
+        name: Scan 2
+        kind: scan
+        with:
+          language: JAVA
+
+      - uses: cloudbees-io/findsecbugs-sast-scan-code@v1
+        name: Scan with Find Security Bugs
+        kind: scan
+        with:
+          language: LANGUAGE_JAVA
+
+      - uses: sbatchelder-cba/sonarqube-cba@v0.0.3
+        name: Scan GP
+        with:
+          project-key: vets-service
+          token: 20e414018be1508e8a472229e7ec07da1a13cfa1
           
