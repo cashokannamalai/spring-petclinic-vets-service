@@ -54,4 +54,3 @@ jobs:
         with:
           project-key: vets-service
           token: 20e414018be1508e8a472229e7ec07da1a13cfa1
-          
