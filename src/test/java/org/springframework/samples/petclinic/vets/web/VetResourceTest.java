@@ -21,7 +21,7 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.autoconfigure.web.servlet.WebMvcTest;
 import org.springframework.boot.test.mock.mockito.MockBean;
 import org.springframework.http.MediaType;
-import org.springframework.samples.petclinic.vets.model.Vet;
+import org.springframework.samples.petclinic.vets.model.Vets;
 import org.springframework.samples.petclinic.vets.model.VetRepository;
 import org.springframework.test.context.ActiveProfiles;
 import org.springframework.test.context.junit.jupiter.SpringExtension;
@@ -50,7 +50,7 @@ class VetResourceTest {
     @Test
     void shouldGetAListOfVets() throws Exception {
 
-        Vet vet = new Vet();
+        Vets vet = new Vets();
         vet.setId(1);
 
         given(vetRepository.findAll()).willReturn(asList(vet));

@@ -18,15 +18,11 @@ package org.springframework.samples.petclinic.vets.model;
 import lombok.Getter;
 import lombok.Setter;
 
-import jakarta.persistence.Column;
-import jakarta.persistence.Entity;
-import jakarta.persistence.GeneratedValue;
-import jakarta.persistence.GenerationType;
-import jakarta.persistence.Id;
-import jakarta.persistence.Table;
+import javax.persistence.*;
+
 
 /**
- * Models a {@link Vet Vet's} specialty (for example, dentistry).
+ * Models a {@link Vets Vet's} specialty (for example, dentistry).
  *
  * @author Juergen Hoeller
  * @author Ramazan Sakin

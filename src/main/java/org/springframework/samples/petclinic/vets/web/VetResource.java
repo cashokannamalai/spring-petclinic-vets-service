@@ -19,8 +19,9 @@ import lombok.RequiredArgsConstructor;
 
 import java.util.List;
 
+import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.cache.annotation.Cacheable;
-import org.springframework.samples.petclinic.vets.model.Vet;
+import org.springframework.samples.petclinic.vets.model.Vets;
 import org.springframework.samples.petclinic.vets.model.VetRepository;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.RequestMapping;
@@ -38,11 +39,14 @@ import org.springframework.web.bind.annotation.RestController;
 @RequiredArgsConstructor
 class VetResource {
 
-    private final VetRepository vetRepository;
+    @Autowired
+    VetRepository vetRepository;
+
+
 
     @GetMapping
     @Cacheable("vets")
-    public List<Vet> showResourcesVetList() {
+    public List<Vets> showResourcesVetList() {
         return vetRepository.findAll();
     }
 }

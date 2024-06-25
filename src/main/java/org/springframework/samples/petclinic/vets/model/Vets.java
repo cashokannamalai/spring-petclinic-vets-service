@@ -21,23 +21,16 @@ import java.util.HashSet;
 import java.util.List;
 import java.util.Set;
 
-import jakarta.persistence.Column;
-import jakarta.persistence.Entity;
-import jakarta.persistence.FetchType;
-import jakarta.persistence.GeneratedValue;
-import jakarta.persistence.GenerationType;
-import jakarta.persistence.Id;
-import jakarta.persistence.JoinColumn;
-import jakarta.persistence.JoinTable;
-import jakarta.persistence.ManyToMany;
-import jakarta.persistence.Table;
-import jakarta.validation.constraints.NotBlank;
-import jakarta.xml.bind.annotation.XmlElement;
+
 
 import lombok.Getter;
 import lombok.Setter;
 import org.springframework.beans.support.MutableSortDefinition;
 import org.springframework.beans.support.PropertyComparator;
+
+import javax.persistence.*;
+import javax.validation.constraints.NotBlank;
+import javax.xml.bind.annotation.XmlElement;
 
 /**
  * Simple JavaBean domain object representing a veterinarian.
@@ -50,25 +43,18 @@ import org.springframework.beans.support.PropertyComparator;
  * @author Ramazan Sakin
  */
 @Entity
-@Table(name = "vets")
-public class Vet {
+public class Vets {
 
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
-    @Getter
-    @Setter
     private Integer id;
 
     @Column(name = "first_name")
     @NotBlank
-    @Getter
-    @Setter
     private String firstName;
 
     @Column(name = "last_name")
     @NotBlank
-    @Getter
-    @Setter
     private String lastName;
 
     @ManyToMany(fetch = FetchType.EAGER)
@@ -98,4 +84,31 @@ public class Vet {
         getSpecialtiesInternal().add(specialty);
     }
 
+    public Integer getId() {
+        return id;
+    }
+
+    public void setId(Integer id) {
+        this.id = id;
+    }
+
+    public @NotBlank String getFirstName() {
+        return firstName;
+    }
+
+    public void setFirstName(@NotBlank String firstName) {
+        this.firstName = firstName;
+    }
+
+    public @NotBlank String getLastName() {
+        return lastName;
+    }
+
+    public void setLastName(@NotBlank String lastName) {
+        this.lastName = lastName;
+    }
+
+    public void setSpecialties(Set<Specialty> specialties) {
+        this.specialties = specialties;
+    }
 }

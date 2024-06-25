@@ -27,5 +27,5 @@ import org.springframework.data.jpa.repository.JpaRepository;
  * @author Michael Isvy
  * @author Maciej Szarlinski
  */
-public interface VetRepository extends JpaRepository<Vet, Integer> {
+public interface VetRepository extends JpaRepository<Vets, Integer> {
 }
