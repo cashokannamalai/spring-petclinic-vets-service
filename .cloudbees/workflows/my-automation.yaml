@@ -5,7 +5,7 @@ name: My automation
 on:
   push:
     branches:
-      - '**'
+      - main
 
 jobs:
   Checkout:
@@ -60,29 +60,95 @@ jobs:
           token: 20e414018be1508e8a472229e7ec07da1a13cfa1
 
 
-  NexusPublish:
+  CreateEC2Instance:
     needs: [SonarAnalysis]
     steps:
       - uses: docker://alpine/git:latest
         run: |
           git config --global --add safe.directory /cloudbees/workspace
-          echo "Listing directory contents before Build:"
-          ls -lR /cloudbees/workspace
 
       - name: checkout
         uses: cloudbees-io/checkout@v1
 
-      - name: Publish to Nexus
+      - name: Build 
         uses: docker://maven:3-eclipse-temurin-17
-        env:
-          NEXUS_USERNAME: ${{ secrets.NEXUS_USERNAME }}
-          NEXUS_PASSWORD: ${{ secrets.NEXUS_PASSWORD }}
         run: |
-          mvn deploy -DskipTests \
-            -DaltDeploymentRepository=nexus::default::https://${NEXUS_USERNAME}:${NEXUS_PASSWORD}@nexus.preview.cb-demos.io/repository/vets-service/
+          mvn clean install 
+      - name: Configure AWS credentials
+        uses: cloudbees-io/configure-aws-credentials@v1
+        with:
+          aws-access-key-id: ${{ secrets.AWS_ACCESS_KEY_ID }}
+          aws-secret-access-key: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
+          aws-session-token: ${{ secrets.AWS_SESSION_TOKEN }}
+          aws-region: us-east-1
 
-      - name: List directory contents after Publish
+      - name: Remove existing key pair if exists
+        uses: docker://amazon/aws-cli:latest
+        run: |
+          if aws ec2 describe-key-pairs --key-name "ashokpetclinic" --region us-east-1; then
+            aws ec2 delete-key-pair --key-name "ashokpetclinic" --region us-east-1
+          fi
+
+      - name: Create and use EC2 key pair
+        uses: docker://amazon/aws-cli:latest
+        run: |
+          aws ec2 create-key-pair --key-name ashokpetclinic --region us-east-1 --query 'KeyMaterial' --output text > ashokpetclinic.pem
+          chmod 400 ashokpetclinic.pem
+          INSTANCE_ID=$(aws ec2 run-instances --image-id ami-04b70fa74e45c3917 --instance-type t2.micro --key-name "ashokpetclinic" --region us-east-1 --query 'Instances[0].InstanceId' --output text)
+          echo $INSTANCE_ID > instance_id.txt
+          ls
+          cat instance_id.txt
+
+      - name: Wait for EC2 instance to be running
+        uses: docker://amazon/aws-cli:latest
+        run: |
+          INSTANCE_ID=$(cat instance_id.txt)
+          aws ec2 wait instance-running --instance-ids $INSTANCE_ID
+          PUBLIC_DNS=$(aws ec2 describe-instances --instance-ids $INSTANCE_ID --query 'Reservations[0].Instances[0].PublicDnsName' --output text)
+          echo $PUBLIC_DNS > public_dns.txt
+          cat public_dns.txt
+
+      - name: Add delay to ensure instance is ready
         uses: docker://alpine:latest
         run: |
-          echo "Current directory: $(pwd)"
-          ls -lR /cloudbees/workspace
+         echo "Waiting for 60 seconds to ensure the instance is ready..."
+         sleep 60
+
+  
+    
+      - name: Transfer artifact to EC2 instance
+        uses: docker://alpine:latest
+        run: |
+         apk update
+         apk add openssh-client
+         PUBLIC_DNS=$(cat public_dns.txt)
+         scp -o StrictHostKeyChecking=no -i ashokpetclinic.pem  target/spring-petclinic-vets-service-3.2.4.jar  ubuntu@$PUBLIC_DNS:/home/ubuntu/
+
+
+      - name: Install Java 17 on EC2 instance
+        uses: docker://alpine:latest
+        run: |
+         apk update
+         apk add openssh-client
+         PUBLIC_DNS=$(cat public_dns.txt)
+         ssh -o StrictHostKeyChecking=no -i ashokpetclinic.pem ubuntu@$PUBLIC_DNS << 'EOF'
+          sudo apt update
+          sudo apt install -y openjdk-17-jdk
+          java -version
+          nohup java -jar /home/ubuntu/spring-petclinic-vets-service-3.2.4.jar  > /home/ubuntu/vets-server.log 2>&1 &
+          disown
+         EOF
+
+      - name: Push instance_id.txt to repository
+        uses: docker://alpine:latest
+        run: |
+          apk update
+          apk add git
+          git config --global user.email "c_aannamalai@cloudbees.com"
+          git config --global user.name "cashokannamalai"
+          git checkout -b ashok
+          git add instance_id.txt
+          git commit -m "Update instance_id.txt with new EC2 instance ID"
+          git push -f origin ashok
+         
+        
