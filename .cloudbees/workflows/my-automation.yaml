@@ -59,9 +59,36 @@ jobs:
           project-key: vets-service
           token: 20e414018be1508e8a472229e7ec07da1a13cfa1
 
+  NexusPublish:
+    needs: [SonarAnalysis]
+    steps:
+      - uses: docker://alpine/git:latest
+        run: |
+          git config --global --add safe.directory /cloudbees/workspace
+          echo "Listing directory contents before Build:"
+          ls -lR /cloudbees/workspace
+
+      - name: checkout
+        uses: cloudbees-io/checkout@v1
+
+      - name: Publish to Nexus
+        uses: docker://maven:3-eclipse-temurin-17
+        env:
+          NEXUS_USERNAME: ${{ secrets.NEXUS_USERNAME }}
+          NEXUS_PASSWORD: ${{ secrets.NEXUS_PASSWORD }}
+
+        run: |
+          mvn deploy -DskipTests \
+            -DaltDeploymentRepository=nexus::default::https://${NEXUS_USERNAME}:${NEXUS_PASSWORD}@nexus.preview.cb-demos.io/repository/Petclinic/
+
+      - name: List directory contents after Publish
+        uses: docker://alpine:latest
+        run: |
+          echo "Current directory: $(pwd)"
+          ls -lR /cloudbees/workspace
 
   CreateEC2Instance:
-    needs: [SonarAnalysis]
+    needs: [NexusPublish]
     steps:
       - uses: docker://alpine/git:latest
         run: |
