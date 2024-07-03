@@ -29,7 +29,7 @@ jobs:
           mvn clean install 
 
 
-  SonarAnalysis:
+  StaticAnalysis:
     needs: Build
     steps:
       - uses: cloudbees-io/sonarqube-sast-scan-code@v1
@@ -37,12 +37,12 @@ jobs:
         kind: scan
         with:
           server-url: https://sonarqube.cb-demos.io
-          username: admin
-          password: admin123
+          username: ${{ secrets.username }}
+          password: ${{ secrets.password }}
           language: Java
 
       - uses: cloudbees-io/sonarqube-bundled-sast-scan-code@v2
-        name: Scan 2
+        name: Scan with Java
         kind: scan
         with:
           language: JAVA
@@ -57,10 +57,10 @@ jobs:
         name: Scan GP
         with:
           project-key: vets-service
-          token: 20e414018be1508e8a472229e7ec07da1a13cfa1
+          token: ${{ secrets.token }}
 
-  NexusPublish:
-    needs: [SonarAnalysis]
+  ArtifactPublish:
+    needs: [StaticAnalysis]
     steps:
       - uses: docker://alpine/git:latest
         run: |
@@ -87,20 +87,9 @@ jobs:
           echo "Current directory: $(pwd)"
           ls -lR /cloudbees/workspace
 
-  CreateEC2Instance:
-    needs: [NexusPublish]
+  DeployApplicationAWS:
+    needs: [ArtifactPublish]
     steps:
-      - uses: docker://alpine/git:latest
-        run: |
-          git config --global --add safe.directory /cloudbees/workspace
-
-      - name: checkout
-        uses: cloudbees-io/checkout@v1
-
-      - name: Build 
-        uses: docker://maven:3-eclipse-temurin-17
-        run: |
-          mvn clean install 
       - name: Configure AWS credentials
         uses: cloudbees-io/configure-aws-credentials@v1
         with:
@@ -132,50 +121,53 @@ jobs:
           INSTANCE_ID=$(cat instance_id.txt)
           aws ec2 wait instance-running --instance-ids $INSTANCE_ID
           PUBLIC_DNS=$(aws ec2 describe-instances --instance-ids $INSTANCE_ID --query 'Reservations[0].Instances[0].PublicDnsName' --output text)
-          echo $PUBLIC_DNS > public_dns.txt
+          echo $PUBLIC_DNS:8081 > public_dns.txt
           cat public_dns.txt
 
       - name: Add delay to ensure instance is ready
         uses: docker://alpine:latest
         run: |
-         echo "Waiting for 60 seconds to ensure the instance is ready..."
-         sleep 60
+          echo "Waiting for 60 seconds to ensure the instance is ready..."
+          sleep 60
 
-  
-    
+      - name: Download artifact from Nexus
+        uses: docker://alpine:latest
+        run: |
+          apk update
+          apk add curl
+          curl -u ${NEXUS_USERNAME}:${NEXUS_PASSWORD} -O https://nexus.preview.cb-demos.io/repository/Petclinic/org/springframework/samples/petclinic/vets/spring-petclinic-vets-service/3.2.4/spring-petclinic-vets-service-3.2.4.jar
+          ls
+
       - name: Transfer artifact to EC2 instance
         uses: docker://alpine:latest
         run: |
-         apk update
-         apk add openssh-client
-         PUBLIC_DNS=$(cat public_dns.txt)
-         scp -o StrictHostKeyChecking=no -i ashokpetclinic.pem  target/spring-petclinic-vets-service-3.2.4.jar  ubuntu@$PUBLIC_DNS:/home/ubuntu/
-
+          apk update
+          apk add openssh-client
+          PUBLIC_DNS=$(cat public_dns.txt | cut -d ':' -f 1)
+          scp -o StrictHostKeyChecking=no -i ashokpetclinic.pem  spring-petclinic-vets-service-3.2.4.jar ubuntu@$PUBLIC_DNS:/home/ubuntu/
 
       - name: Install Java 17 on EC2 instance
         uses: docker://alpine:latest
         run: |
-         apk update
-         apk add openssh-client
-         PUBLIC_DNS=$(cat public_dns.txt)
-         ssh -o StrictHostKeyChecking=no -i ashokpetclinic.pem ubuntu@$PUBLIC_DNS << 'EOF'
-          sudo apt update
-          sudo apt install -y openjdk-17-jdk
-          java -version
-          nohup java -jar /home/ubuntu/spring-petclinic-vets-service-3.2.4.jar  > /home/ubuntu/vets-server.log 2>&1 &
-          disown
-         EOF
-
-      - name: Push instance_id.txt to repository
+          apk update
+          apk add openssh-client
+          PUBLIC_DNS=$(cat public_dns.txt | cut -d ':' -f 1)
+          ssh -o StrictHostKeyChecking=no -i ashokpetclinic.pem ubuntu@$PUBLIC_DNS << 'EOF'
+            sudo apt update
+            sudo apt install -y openjdk-17-jdk
+            java -version
+            nohup java -jar /home/ubuntu/spring-petclinic-vets-service-3.2.4.jar > /home/ubuntu/admin-server.log 2>&1 &
+            disown
+          EOF
+      - name: View public DNS with port 8081
         uses: docker://alpine:latest
         run: |
-          apk update
-          apk add git
-          git config --global user.email "c_aannamalai@cloudbees.com"
-          git config --global user.name "cashokannamalai"
-          git checkout -b ashok
-          git add instance_id.txt
-          git commit -m "Update instance_id.txt with new EC2 instance ID"
-          git push -f origin ashok
-          
-         
+          echo "Public DNS with port 8081:"
+          PUBLIC_DNS=$(cat public_dns.txt)
+          echo "http://$PUBLIC_DNS"
+
+      - name: Output DNS URL
+        uses: docker://alpine:latest
+        run: |
+          PUBLIC_DNS=$(cat public_dns.txt | cut -d ':' -f 1)
+          echo "Application URL: http://$PUBLIC_DNS:8081"
