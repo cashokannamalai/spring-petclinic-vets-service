@@ -59,115 +59,27 @@ jobs:
           project-key: vets-service
           token: ${{ secrets.token }}
 
-  ArtifactPublish:
-    needs: [StaticAnalysis]
+  DockerImageBuildAndPush:
+    needs: StaticAnalysis
     steps:
-      - uses: docker://alpine/git:latest
-        run: |
-          git config --global --add safe.directory /cloudbees/workspace
-          echo "Listing directory contents before Build:"
-          ls -lR /cloudbees/workspace
-
-      - name: checkout
+      - name: Checkout
         uses: cloudbees-io/checkout@v1
-
-      - name: Publish to Nexus
+      - name: Build
         uses: docker://maven:3-eclipse-temurin-17
-        env:
-          NEXUS_USERNAME: ${{ secrets.NEXUS_USERNAME }}
-          NEXUS_PASSWORD: ${{ secrets.NEXUS_PASSWORD }}
-
         run: |
-          mvn deploy -DskipTests \
-            -DaltDeploymentRepository=nexus::default::https://${NEXUS_USERNAME}:${NEXUS_PASSWORD}@nexus.preview.cb-demos.io/repository/Petclinic/
-
-      - name: List directory contents after Publish
-        uses: docker://alpine:latest
-        run: |
-          echo "Current directory: $(pwd)"
-          ls -lR /cloudbees/workspace
-
-  DeployApplicationAWS:
-    needs: [ArtifactPublish]
-    steps:
-      - name: Configure AWS credentials
-        uses: cloudbees-io/configure-aws-credentials@v1
+          mvn clean install -DskipTests=true
+      - name: Configure container registry credentials
+        id: dockerconfig
+        uses: cloudbees-io/configure-oci-credentials@v1
         with:
-          aws-access-key-id: ${{ secrets.AWS_ACCESS_KEY_ID }}
-          aws-secret-access-key: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
-          aws-session-token: ${{ secrets.AWS_SESSION_TOKEN }}
-          aws-region: us-east-1
+          registry: ${{ secrets.STAGING_DOCKER_REGISTRY }}
+          username: ${{ secrets.STAGING_DOCKER_USERNAME }}
+          password: ${{ secrets.STAGING_DOCKER_PASSWORD }}
 
-      - name: Remove existing key pair if exists
-        uses: docker://amazon/aws-cli:latest
-        run: |
-          if aws ec2 describe-key-pairs --key-name "ashokpetclinic" --region us-east-1; then
-            aws ec2 delete-key-pair --key-name "ashokpetclinic" --region us-east-1
-          fi
-
-      - name: Create and use EC2 key pair
-        uses: docker://amazon/aws-cli:latest
-        run: |
-          aws ec2 create-key-pair --key-name ashokpetclinic --region us-east-1 --query 'KeyMaterial' --output text > ashokpetclinic.pem
-          chmod 400 ashokpetclinic.pem
-          INSTANCE_ID=$(aws ec2 run-instances --image-id ami-04b70fa74e45c3917 --instance-type t2.micro --key-name "ashokpetclinic" --region us-east-1 --query 'Instances[0].InstanceId' --output text)
-          echo $INSTANCE_ID > instance_id.txt
-          ls
-          cat instance_id.txt
-
-      - name: Wait for EC2 instance to be running
-        uses: docker://amazon/aws-cli:latest
-        run: |
-          INSTANCE_ID=$(cat instance_id.txt)
-          aws ec2 wait instance-running --instance-ids $INSTANCE_ID
-          PUBLIC_DNS=$(aws ec2 describe-instances --instance-ids $INSTANCE_ID --query 'Reservations[0].Instances[0].PublicDnsName' --output text)
-          echo $PUBLIC_DNS:8081 > public_dns.txt
-          cat public_dns.txt
-
-      - name: Add delay to ensure instance is ready
-        uses: docker://alpine:latest
-        run: |
-          echo "Waiting for 60 seconds to ensure the instance is ready..."
-          sleep 60
-
-      - name: Download artifact from Nexus
-        uses: docker://alpine:latest
-        run: |
-          apk update
-          apk add curl
-          curl -u ${NEXUS_USERNAME}:${NEXUS_PASSWORD} -O https://nexus.preview.cb-demos.io/repository/Petclinic/org/springframework/samples/petclinic/vets/spring-petclinic-vets-service/3.2.4/spring-petclinic-vets-service-3.2.4.jar
-          ls
-
-      - name: Transfer artifact to EC2 instance
-        uses: docker://alpine:latest
-        run: |
-          apk update
-          apk add openssh-client
-          PUBLIC_DNS=$(cat public_dns.txt | cut -d ':' -f 1)
-          scp -o StrictHostKeyChecking=no -i ashokpetclinic.pem  spring-petclinic-vets-service-3.2.4.jar ubuntu@$PUBLIC_DNS:/home/ubuntu/
-
-      - name: Install Java 17 on EC2 instance
-        uses: docker://alpine:latest
-        run: |
-          apk update
-          apk add openssh-client
-          PUBLIC_DNS=$(cat public_dns.txt | cut -d ':' -f 1)
-          ssh -o StrictHostKeyChecking=no -i ashokpetclinic.pem ubuntu@$PUBLIC_DNS << 'EOF'
-            sudo apt update
-            sudo apt install -y openjdk-17-jdk
-            java -version
-            nohup java -jar /home/ubuntu/spring-petclinic-vets-service-3.2.4.jar > /home/ubuntu/admin-server.log 2>&1 &
-            disown
-          EOF
-      - name: View public DNS with port 8081
-        uses: docker://alpine:latest
-        run: |
-          echo "Public DNS with port 8081:"
-          PUBLIC_DNS=$(cat public_dns.txt)
-          echo "http://$PUBLIC_DNS"
-
-      - name: Output DNS URL
-        uses: docker://alpine:latest
-        run: |
-          PUBLIC_DNS=$(cat public_dns.txt | cut -d ':' -f 1)
-          echo "Application URL: http://$PUBLIC_DNS:8081"
+      - name: Push image to OCI registry
+        uses: cloudbees-io/kaniko@v1
+        with:
+          dockerfile: Dockerfile
+          context: .
+          destination: ${{ secrets.STAGING_DOCKER_REGISTRY }}/${{ secrets.STAGING_DOCKER_USERNAME }}/vets-service:3.2.4
+          build-args: docker images
