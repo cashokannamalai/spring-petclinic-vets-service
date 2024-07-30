@@ -99,3 +99,13 @@ jobs:
           kubectl apply -f /cloudbees/workspace/deployment-service.yaml
           kubectl get pods -n ashok
           kubectl get svc -n ashok
+
+      - name: Get External IP and Port
+        uses: docker://google/cloud-sdk:latest
+        run: |
+          export KUBECONFIG=/cloudbees/workspace/kubeconfig.yaml
+          EXTERNAL_IP=$(kubectl get svc vets-service  -n ashok -o=jsonpath='{.status.loadBalancer.ingress[0].ip}')
+          PORT=$(kubectl get svc vets-service  -n ashok -o=jsonpath='{.spec.ports[0].port}')
+          echo "External IP: $EXTERNAL_IP"
+          echo "Port: $PORT"
+          echo "$EXTERNAL_IP:$PORT"
