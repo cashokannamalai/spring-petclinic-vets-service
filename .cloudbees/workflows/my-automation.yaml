@@ -83,3 +83,16 @@ jobs:
           context: .
           destination: ${{ secrets.STAGING_DOCKER_REGISTRY }}/${{ secrets.STAGING_DOCKER_USERNAME }}/vets-service:3.2.4
           build-args: docker images
+
+  DeployInGKE:
+    needs: DockerImageBuildAndPush
+    steps: 
+      - name: Checkout
+        uses: cloudbees-io/checkout@v1
+         
+      - name: Install kubectl
+        uses: docker://google/cloud-sdk:latest
+        run: |
+          export KUBECONFIG=/cloudbees/workspace/kubeconfig.yaml
+          kubectl config view
+          kubectl cluster-info
