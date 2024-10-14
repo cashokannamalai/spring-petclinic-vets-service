@@ -41,4 +41,4 @@ server:
 eureka:
   client:
     serviceUrl:
-      defaultZone: http://discovery-server:8761/eureka/
+      defaultZone: http://35.239.105.95:8761/eureka/
