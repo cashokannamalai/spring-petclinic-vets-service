@@ -2,7 +2,7 @@ spring:
   application:
     name: vets-service  # Name of your service
   config:
-    import: optional:configserver:${CONFIG_SERVER_URL:http://34.122.230.187:8888/}  # Config Server URL
+    import: optional:configserver:${CONFIG_SERVER_URL:http://35.239.105.95:8888/}  # Config Server URL
   cache:
     cache-names: vets
   profiles:
@@ -11,7 +11,7 @@ spring:
 eureka:
   client:
     service-url:
-      defaultZone: http://34.28.103.87:8761/eureka/  # Eureka server URL
+      defaultZone: http://34.45.147.29:8761/  # Eureka server URL
     register-with-eureka: true
     fetch-registry: true
   instance:
@@ -26,4 +26,4 @@ spring:
   config:
     activate:
       on-profile: docker
-    import: configserver:http://34.122.230.187:8888/  # Config Server for Docker profile
+    import: configserver:http://35.239.105.95:8888/  # Config Server for Docker profile
