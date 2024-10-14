@@ -2,7 +2,7 @@ spring:
   application:
     name: vets-service
   config:
-    import: optional:configserver:${CONFIG_SERVER_URL:http://34.172.197.153:8888/}
+    import: optional:configserver:${CONFIG_SERVER_URL:http://34.123.177.155:8888/}
   cache:
     cache-names: vets
   profiles:
@@ -14,3 +14,31 @@ spring:
     activate:
       on-profile: docker
     import: configserver:http://config-server:8888
+vets:
+  cache:
+    ttl: 60
+    heap-size: 100
+
+---
+spring:
+  config:
+    activate:
+      on-profile: default
+eureka:
+  instance:
+    # enable to register multiple app instances with a random server port
+    instance-id: ${spring.application.name}:${random.uuid}
+
+---
+spring:
+  config:
+    activate:
+      on-profile: docker
+  zipkin:
+    baseUrl: http://tracing-server:9411
+server:
+  port: 8082
+eureka:
+  client:
+    serviceUrl:
+      defaultZone: http://34.68.43.157:8761/eureka/
