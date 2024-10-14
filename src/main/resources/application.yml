@@ -2,7 +2,7 @@ spring:
   application:
     name: vets-service
   config:
-    import: optional:configserver:${CONFIG_SERVER_URL:http://34.123.177.155:8888/}
+    import: optional:configserver:${CONFIG_SERVER_URL:http://localhost:8888/}
   cache:
     cache-names: vets
   profiles:
@@ -14,7 +14,7 @@ spring:
     activate:
       on-profile: docker
     import: configserver:http://config-server:8888
-vets:
+﻿vets:
   cache:
     ttl: 60
     heap-size: 100
@@ -37,8 +37,8 @@ spring:
   zipkin:
     baseUrl: http://tracing-server:9411
 server:
-  port: 8082
+  port: 8083
 eureka:
   client:
     serviceUrl:
-      defaultZone: http://34.68.43.157:8761/eureka/
+      defaultZone: http://discovery-server:8761/eureka/
