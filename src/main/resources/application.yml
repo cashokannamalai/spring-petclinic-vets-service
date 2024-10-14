@@ -1,16 +1,11 @@
+server:
+  port: 8083
+
 spring:
   application:
-    name: vets-service
-  config:
-    import: optional:configserver:${CONFIG_SERVER_URL:http://34.122.225.157:8888/}
-  cache:
-    cache-names: vets
-  profiles:
-    active: production
-
----
-spring:
-  config:
-    activate:
-      on-profile: docker
-    import: configserver:http://34.122.225.157:8888/
+    name: vet-service 
+  cloud:
+    discovery:
+      client:
+        service-url:
+          defaultZone: http://35.239.105.95:8761/eureka/ 
