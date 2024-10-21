@@ -6,7 +6,7 @@ metadata:
   labels:
     app: vetsservice
 spec:
-  replicas: 1
+  replicas: 1  # Number of replicas
   selector:
     matchLabels:
       app: vetsservice
@@ -17,9 +17,21 @@ spec:
     spec:
       containers:
         - name: vetsservice
-          image: caannamalai/vets-service:3.2.4
+          image: caannamalai/vets-service:3.2.4  
           ports:
-            - containerPort: 8082
+            - containerPort: 8082  
+          readinessProbe: 
+            httpGet:
+              path: /actuator/health  
+              port: 8082
+            initialDelaySeconds: 10
+            periodSeconds: 10
+          livenessProbe: 
+            httpGet:
+              path: /actuator/health
+              port: 8082
+            initialDelaySeconds: 30
+            periodSeconds: 30
 
 ---
 
@@ -31,31 +43,11 @@ metadata:
   labels:
     app: vetsservice
 spec:
+  type: LoadBalancer  
   selector:
     app: vetsservice
   ports:
     - protocol: TCP
-      port: 80
-      targetPort: 8082
-
----
-
-apiVersion: networking.k8s.io/v1
-kind: Ingress
-metadata:
-  name: vetsservice-ingress
-  namespace: ashok
-  annotations:
-    nginx.ingress.kubernetes.io/rewrite-target: /
-spec:
-  rules:
-    - host:  ""
-      http:
-        paths:
-          - path: /vets
-            pathType: Prefix
-            backend:
-              service:
-                name: vetsservice-service
-                port:
-                  number: 80
+      port: 8082       
+      targetPort: 8082  
+  sessionAffinity: None  
