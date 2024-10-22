@@ -8,9 +8,33 @@ spring:
   profiles:
     active: production
 
+vets:
+  cache:
+    ttl: 60
+    heap-size: 100
+
 ---
 spring:
   config:
     activate:
       on-profile: docker
     import: configserver:http://config-server:8888
+  zipkin:
+    baseUrl: http://tracing-server:9411
+  server:
+    port: 8083
+  eureka:
+    client:
+      serviceUrl:
+        defaultZone: http://34.135.127.54:8761
+    instance:
+      instance-id: ${spring.application.name}:${random.uuid}
+
+---
+spring:
+  config:
+    activate:
+      on-profile: default
+  eureka:
+    instance:
+      instance-id: ${spring.application.name}:${random.uuid}
