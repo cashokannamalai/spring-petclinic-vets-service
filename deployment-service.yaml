@@ -43,7 +43,7 @@ metadata:
   labels:
     app: vetsservice
 spec:
-  type: LoadBalancer  
+  type: ClusterIP
   selector:
     app: vetsservice
   ports:
